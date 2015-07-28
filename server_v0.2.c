@@ -64,7 +64,7 @@ int receive_binary_data(char* filename, int sockfd)
     printf("File Name:             %s\n", name);
     memset(recvBuff, 0, sizeof(recvBuff));   
 
-//
+//add file location
     char file_location[100] = "./media/";
     strcat(file_location, name);
 
