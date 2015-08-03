@@ -10,6 +10,7 @@
 #include <time.h>
 
 #define PORT "8888"
+#define BUFFSIZE 256
 
 int filesize(FILE *fp)
 {
@@ -45,20 +46,20 @@ int receive_binary_data(char* filename, int sockfd)
     /* Create file where data will be stored */
     FILE *fp;
     int bytesReceived = 0;
-    char recvBuff[256];
+    char recvBuff[BUFFSIZE];
     memset(recvBuff, 0, sizeof(recvBuff));
 
     int sum = 0;
     int count = 0;
 
 //read file byte
-    read(sockfd, recvBuff, 256);
+    read(sockfd, recvBuff, BUFFSIZE);
     int filesize = atoi(recvBuff);
     printf("Receive filesize:      %d\n", filesize);
     memset(recvBuff, 0, sizeof(recvBuff));
 
 //read file name
-    read(sockfd, recvBuff, 256);
+    read(sockfd, recvBuff, BUFFSIZE);
     char name[50];
     strcpy(name, recvBuff);
     printf("File Name:             %s\n", name);
@@ -75,21 +76,41 @@ int receive_binary_data(char* filename, int sockfd)
 	return 1;
     }
  
-    /* Receive data in chunks of 256 bytes */
-    while((bytesReceived = read(sockfd, recvBuff, 256)) > 0)
+    while(1)
     {
-        /* Print the log-message */
-        sum += bytesReceived;
-        count = log_display(count, sum, filesize);
-        fwrite(recvBuff, 1,bytesReceived,fp);
-    }
+    
+        /* Receive data in chunks of BUFFSIZE bytes */
+        while((bytesReceived = read(sockfd, recvBuff, BUFFSIZE-1)) > 0)
+        {
+            /* Print the log-message */
+            sum += bytesReceived;
+            count = log_display(count, sum, filesize);
+            fwrite(recvBuff, 1, bytesReceived, fp);
+        }
 
-    count+=1;
-    log_display(count, sum, filesize);
+        count+=1;
+        log_display(count, sum, filesize);
 
-    if(bytesReceived < 0)
-    {
-        printf("\n Read Error \n");
+        if(bytesReceived < 0)
+        {
+            printf("\n Read Error \n");
+        }
+
+        if(filesize != sum)
+        {
+    	    printf("file save ERROR\n");	
+            printf("Retry...");
+            sum = 0;
+            count = 0;
+            char commend[100] = "rm -f ./media/";
+            strcat(commend, name);
+            system(commend);
+            sleep(1);
+        }
+        else
+        {
+            break;
+        }
     }
     return 0;
 }
