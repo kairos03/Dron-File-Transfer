@@ -1,3 +1,8 @@
+/* server.c
+ * version 0.4
+ * file send error fixed
+ */
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>

@@ -1,3 +1,8 @@
+/* client.c
+ * version 0.4  
+ * file send error fixed
+ */
+
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
