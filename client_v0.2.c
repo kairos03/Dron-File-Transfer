@@ -12,7 +12,7 @@
 
 #define PORT "8888"
 #define IP "192.168.42.1"
-#define FILE_NAME "vid1.mp4"
+#define FILE_NAME "RACK001201508031011.vid" //23 byte
 
 int filesize(FILE *fp)
 {
@@ -101,27 +101,8 @@ int main(int argc, char *argv[])
     int portnum = atoi(PORT);
     char *IP_address = IP;
     struct in_addr temp;
-    struct hostent *server;
-/*
-    if (strncmp(argv[1],"localhost",strlen("localhost"))==0)
-    {
-        printf("Local ");
-        server = gethostbyname(IP_address);
-        bcopy((char *)server->h_addr, (char *)&temp.s_addr, server->h_length);
-        IP_address = inet_ntoa(temp);
-    } else {
-        printf("Remote ");
-        IP_address = IP;
-    }
-
-
-    if (argc < 2) {
-        fprintf(stderr,"usage %s <Hostname/IP-address>\n", argv[0]);
-        exit(0);
-    }
-*/
-
     int sockfd = 0;
+    
     struct sockaddr_in serv_addr;
 
     /* Create a socket first */
@@ -146,7 +127,7 @@ int main(int argc, char *argv[])
     printf("Connect success\n");
 
 
-    send_binary_data("vid1.mp4",sockfd);
+    send_binary_data(FILE_NAME,sockfd);
 
     return 0;
 }
