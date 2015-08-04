@@ -12,13 +12,14 @@
 #define PORT "8888"
 #define BUFFSIZE 256
 
+// read file size
 int filesize(FILE *fp)
 {
-    int sz;
+    int fsize;
     fseek(fp, 0L, SEEK_END);
-    sz = ftell(fp);
+    fsize = ftell(fp);
     fseek(fp, 0L, SEEK_SET);
-    return sz;
+    return fsize;
 }
 
 
@@ -40,8 +41,8 @@ int log_display(int count, int sum, int total)
 
 
 // Receive binary data from socket
-// Usage: receive_binary_data(filename, socket_fd);
-int receive_binary_data(char* filename, int sockfd)
+// Usage: receive_binary_data( socket_fd);
+int receive_binary_data( int sockfd )
 {
     /* Create file where data will be stored */
     FILE *fp;
@@ -59,15 +60,15 @@ int receive_binary_data(char* filename, int sockfd)
     memset(recvBuff, 0, sizeof(recvBuff));
 
 //read file name
-    read(sockfd, recvBuff, BUFFSIZE);
-    char name[50];
-    strcpy(name, recvBuff);
-    printf("File Name:             %s\n", name);
+    char fname[24];
+    memset(fname, '\0', sizeof(fname));
+    read(sockfd, fname, 23);
+    printf("File Name:             %s\n", fname);
     memset(recvBuff, 0, sizeof(recvBuff));   
 
 //add filename to location
     char file_location[100] = "./media/";
-    strcat(file_location, name);
+    strcat(file_location, fname);
 
     fp = fopen(file_location, "wb");
     if(NULL == fp)
@@ -76,42 +77,23 @@ int receive_binary_data(char* filename, int sockfd)
 	return 1;
     }
  
-    while(1)
+     /* Receive data in chunks of BUFFSIZE bytes */
+    while((bytesReceived = read(sockfd, recvBuff, BUFFSIZE)) > 0)
     {
-    
-        /* Receive data in chunks of BUFFSIZE bytes */
-        while((bytesReceived = read(sockfd, recvBuff, BUFFSIZE-1)) > 0)
-        {
-            /* Print the log-message */
-            sum += bytesReceived;
-            count = log_display(count, sum, filesize);
-            fwrite(recvBuff, 1, bytesReceived, fp);
-        }
-
-        count+=1;
-        log_display(count, sum, filesize);
-
-        if(bytesReceived < 0)
-        {
-            printf("\n Read Error \n");
-        }
-
-        if(filesize != sum)
-        {
-    	    printf("file save ERROR\n");	
-            printf("Retry...");
-            sum = 0;
-            count = 0;
-            char commend[100] = "rm -f ./media/";
-            strcat(commend, name);
-            system(commend);
-            sleep(1);
-        }
-        else
-        {
-            break;
-        }
+        /* Print the log-message */
+        sum += bytesReceived;
+        count = log_display(count, sum, filesize);
+        fwrite(recvBuff, 1, bytesReceived, fp);
     }
+
+    count+=1;
+    log_display(count, sum, filesize);
+
+    if(bytesReceived < 0)
+    {
+        printf("\n Read Error \n");
+    }
+  
     return 0;
 }
 
@@ -119,13 +101,6 @@ int main(int argc, char *argv[])
 {
 
     int portnum = atoi(PORT);
-
-/*
-    if (argc < 2) {
-        fprintf(stderr,"usage %s <Hostname/IP-address> \n", argv[0]);
-        exit(0);
-    }
-*/
 
     int listenfd = 0;
     int connfd = 0;
@@ -150,11 +125,13 @@ int main(int argc, char *argv[])
         printf("Failed to listen\n");
         return -1;
     }
-    connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL);
 
+    while(1)
+    {
+        connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL);
 
-    receive_binary_data("output_data.txt", connfd);
-
+        receive_binary_data( connfd );
+    }
 
     close(connfd);
     return 0;
