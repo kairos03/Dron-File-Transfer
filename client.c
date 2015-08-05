@@ -14,10 +14,14 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <time.h>
+#include <dirent.h>
 
 #define PORT "8888"
 #define IP "192.168.42.1"
-#define FILE_NAME "RACK001201508031011.vid" //23 byte
+#define FILE_NAME "./media/RACK001201508041732.mp4" //31 byte
+#define DELAY_TIME 5000
+
+
 
 int filesize(FILE *fp)
 {
@@ -52,24 +56,25 @@ int send_binary_data(char* filename, int sockfd)
     FILE *fp = fopen(filename,"rb");
     if(fp==NULL)
     {
-        printf("File opern error");
+        printf("File opern error\n");
         return 1;
     }
 
     char filesize_char[100];
+    memset(filesize_char, '\0', 100);
     sprintf(filesize_char, "%d", filesize(fp));
     printf("Filesize: %s\n", filesize_char);
     write(sockfd, filesize_char, strlen(filesize_char));
    
     //Wait for Server I/O
-    usleep(500);
+    usleep(DELAY_TIME);
 
     // Send file name
     printf("FIle Name: %s\n", filename);
     write(sockfd, filename, strlen(filename));
     
     /* Wait for server I/O */
-    usleep(500);
+    usleep(DELAY_TIME);
 
     /* Read data from file and send it */
     while(1)
@@ -131,8 +136,30 @@ int main(int argc, char *argv[])
 
     printf("Connect success\n");
 
+    //in media all file sending
+    DIR *dp;
+    struct dirent *dir;
 
-    send_binary_data(FILE_NAME,sockfd);
+    if( (dp = opendir("./media")) == NULL )
+    {
+        printf("diractory open error\n");
+        exit(-1);
+    }
+
+    while ( (dir = readdir(dp)) != NULL )
+    {
+        printf("%s ", dir->d_name);
+
+        if(dir->d_ino == 0) continue;
+        if(strcmp(dir->d_name, ".") == 0 ) continue;
+        if(strcmp(dir->d_name, "..") == 0 ) continue;
+
+        char location[32] = "./media/";
+        strcat(location, dir->d_name);
+        send_binary_data(location ,sockfd);
+        usleep(DELAY_TIME);
+    }
+    closedir(dp);
 
     return 0;
 }
