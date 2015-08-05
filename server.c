@@ -13,9 +13,42 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
+#include <dirent.h>
 
 #define PORT "8888"
 #define BUFFSIZE 256
+
+void dir_check()
+{
+    // if media folder are not exist make it    
+    DIR *dp;
+    struct dirent *dir;
+    int check=0;
+    if( (dp = opendir(".")) == NULL )
+        printf("dir opend error\n");
+    else
+    {
+        while( (dir = readdir(dp)) != NULL )
+        {
+            if(dir->d_ino == 0) continue;
+            else if( strcmp(dir->d_name,  "media") == 0)
+            {
+                check = 1;
+            }
+        }
+    }
+    if( check == 0 )
+    {
+        printf("media folder not found\n");
+        system("mkdir media");
+        printf("make media done\n");
+    }
+    else
+        printf("media folder founded\n");
+    sleep(1);
+
+    return;
+}
 
 // read file size
 int filesize(FILE *fp)
@@ -35,9 +68,9 @@ int log_display(int count, int sum, int total)
     time_t now;
     time(&now);
 
-    if(100*sum/total >= count*5)
+    if(100*(sum/total) >= count*10)
     {
-        printf("%3d%% ", count*5);
+        printf("%3d%% ", count*10);
         printf("%s", ctime(&now));
         count+=1;
     }
@@ -62,20 +95,20 @@ int receive_binary_data( int sockfd )
     read(sockfd, recvBuff, BUFFSIZE);
     int filesize = atoi(recvBuff);
     printf("Receive filesize:      %d\n", filesize);
-    memset(recvBuff, 0, sizeof(recvBuff));
+    memset(recvBuff, '\0', sizeof(recvBuff));
 
 //read file name
-    char fname[24];
+    char fname[32];
     memset(fname, '\0', sizeof(fname));
-    read(sockfd, fname, 23);
+    read(sockfd, fname, 31);
     printf("File Name:             %s\n", fname);
-    memset(recvBuff, 0, sizeof(recvBuff));   
 
 //add filename to location
-    char file_location[100] = "./media/";
-    strcat(file_location, fname);
+//    char file_location[32] = "./media/";
+//    strcat(file_location, fname);
 
-    fp = fopen(file_location, "wb");
+// file open
+    fp = fopen(fname, "wb");
     if(NULL == fp)
     {
         printf("Error opening file");
@@ -104,6 +137,8 @@ int receive_binary_data( int sockfd )
 
 int main(int argc, char *argv[])
 {
+
+    dir_check();
 
     int portnum = atoi(PORT);
 
@@ -136,8 +171,9 @@ int main(int argc, char *argv[])
         connfd = accept(listenfd, (struct sockaddr*)NULL ,NULL);
 
         receive_binary_data( connfd );
+        close(connfd);
     }
 
-    close(connfd);
+    close(listenfd);
     return 0;
 }
